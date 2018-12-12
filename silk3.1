@@ -1,0 +1,83 @@
+#!/usr/bin/python3
+# Import libraries and modules
+from bs4 import BeautifulSoup as B
+import re
+import os
+import mysql.connector as my
+from mysql.connector import Error
+from mysql.connector import errorcode
+
+#####################################################
+## This is for the CVV section of the sql database ##
+#####################################################
+
+# put html file into variable
+html_file = "/home/jpie/Projects/python_workpace/silkroad3/CVV/Silk Road 3.1.htm"
+page = open(html_file)
+
+# BS it
+soup = B(page.read(), features='lxml')
+
+# try to extract vendor name and write it to file 
+vendor = open("cvv_vendor.txt","w")
+
+# silk uses a variation of tables with specialized tags we can use this soup query to get what we need dood
+# likely to change if silkroad decides to update their website. on going review needed
+table = soup.find_all('table')[1].tbody.find_all('span', id='ah_nam')[0::5]
+
+for i in table:       
+		i = str(i)
+        for x in re.findall(r'(?<=<span id="ah_name">)(\b\w+)(?=<\/span>)',i):
+                vendor.write(x)
+                vendor.write('\n')
+
+vendor.close()
+
+# try to get product name
+product = open("cvv_product.txt","w")
+
+table_product = soup.find_all('table')[1].tbody.find_all('a href')[0::5]
+for i in table_product:
+		i = str(i)
+		for x in re.findall(r'(?<=(<a href=>)(\w|\d|\n|[().,\-:;@#$%^&*\[\]"+–\/\/!?{}|~]| ))(?=<\/a>)',i):
+				product.write(x)
+				product.write('\n')
+				
+product.close()
+
+#clean it up 
+p_ = os.popen("sed -e 's/&amp/&/g' -e 's/&gt//g' -e 's/&lt//g' -e 's/,//g' -e 's/#//g' cvv_product.txt > cvv_products.txt")
+# remove the old file
+p__ = os.popen("rm -r bot_product.txt")
+
+# try to price of the items
+price = open("cvv_price.txt", "w")
+table_price = soup.find_all('table')[1].tbody.find_all('b')
+for i in table_price:
+		i = str(i)
+		for x in re.findall(r'(?<=<b style="color:#333">)(.*?)(?=<\/b>)',i):
+				price.write(x)
+				price.write('\n')				
+price.close()
+# remove currency symbol
+p_currency = os.popen("sed -e 's/,/./g' -e 's/\$//g' -e 's/€//g' cvv_price.txt > cvv_prices.txt")
+
+
+# make CSV for the DB
+csv_ = os.popen("paste -d ',' cvv_products.txt ccv_vendor.txt bot_prices.txt > /var/lib/mysql/SILKROAD/CVV.csv")
+
+# database connection and stuffs
+conn = my.connect(
+        host='localhost',
+        user='root',
+        passwd='123qweasdzxc',
+        db='SILKROAD'
+)
+try:
+        cursor = conn.cursor()
+        query = '''load data local infile '/var/lib/mysql/SILKROAD/CVV.csv' into table CVV fields terminated by ',';'''
+        cursor.execute(query)
+        conn.commit()
+        conn.close()
+except:
+        print("error but write to database...odd...")
