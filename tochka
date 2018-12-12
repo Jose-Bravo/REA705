@@ -1,0 +1,84 @@
+#!/usr/bin/python3
+
+# import modules and libraries
+from bs4 import BeautifulSoup as B
+import re
+import os
+import sys
+import mysql.connector as my
+from mysql.connector import Error
+from mysql.connector import errorcode
+
+# put the html file into a variable
+html_file = "/home/jpie/Projects/python_workpace/TochkaFiles/Tochka/Exploit/Tochka Free Markete1.html"
+page = open(html_file)
+# below will create the beautiful soup object because its not a URL online, rather local html that we extracted earlier
+soup = B(page.read(), features="lxml")
+
+# get the vendor name and product name from the shitty  html
+messy_vendor_name = soup.find_all("div", class_="content card-header")
+
+# make it a string
+meh_vendor_name = str(messy_vendor_name)
+
+# create list of unformatted vendors
+re_vendor = re.findall(r'/user/[A-Za-z0-9]+',meh_vendor_name)
+to_be_removed = '/user/'
+
+# create a file for vendors
+vendor = open("vendor.txt",'w')
+
+for i in re_vendor:
+        vendors = i.strip(to_be_removed)
+        vendor.write(vendors)
+        vendor.write("\n")
+vendor.close()
+
+# create a file for products
+product = open("product.txt",'w')
+
+# get product name
+for i in soup.find_all('div', class_='content card-header'):
+        product.write(i.text)
+product.close()
+
+# strip white space from product.txt
+command =  os.popen("egrep -v '^$' product.txt > products.txt")
+bye__ = os.popen("rm -r product.txt")
+# get rid of rogue "commas"
+bye_comma = os.popen("sed 's/,/ /g' products.txt > product.txt")
+byeybe = os.popen("rm -r products.txt")
+
+# lets see if we can get the damn price...
+price = open("price.txt","w")
+for i in soup.find_all('span', class_='ui basic right pointing label fluid'):
+        price.write(i.text)
+price.close()
+
+# the format on this is even worse than the rest.....
+asad_bin_talal = os.popen("cat price.txt | tr -d ' \t\r' > pricesss.txt")
+asad_bin_gone = os.popen("egrep -v '^$' pricesss.txt > pricess.txt")
+asad_bin_america = os.popen("egrep -v '(\w+)-' pricess.txt > ooo.txt")
+asad_bin_laden = os.popen("egrep -v '^USD' ooo.txt > prices.txt")
+asad_bin_dead = os.popen("rm -r price.txt pricesss.txt ooo.txt pricess.txt")
+
+
+aziz_bin_talal = os.popen("paste -d',' product.txt vendor.txt prices.txt > /home/jpie/Projects/ccv.csv ")
+work_around = os.popen("cp /home/jpie/Projects/ccv.csv /var/lib/mysql/TOCHKA/ccv.csv ")
+
+conn = my.connect(
+        host='localhost',
+        user='root',
+        passwd='123qweasdzxc',
+        db='TOCHKA'
+)
+# uncomment below to test if sucessful
+#print(conn)
+
+cursor = conn.cursor()
+query = '''load data local infile '/var/lib/mysql/TOCHKA/ccv.csv' into table Exploit fields terminated by ',';'''
+cursor.execute(query)
+conn.commit()
+conn.close()
+
+
