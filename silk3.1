@@ -26,7 +26,7 @@ vendor = open("cvv_vendor.txt","w")
 table = soup.find_all('table')[1].tbody.find_all('span', id='ah_nam')[0::5]
 
 for i in table:       
-		i = str(i)
+	i = str(i)
         for x in re.findall(r'(?<=<span id="ah_name">)(\b\w+)(?=<\/span>)',i):
                 vendor.write(x)
                 vendor.write('\n')
