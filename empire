@@ -1,0 +1,74 @@
+#!/usr/bin/python3
+# Import libraries and modules
+from bs4 import BeautifulSoup as B
+import re
+import os
+import mysql.connector as my
+from mysql.connector import Error
+from mysql.connector import errorcode
+
+#####################################################
+## This is for the BOT section of the sql database ##
+#####################################################
+
+# put html file into variable
+html_file = "/home/jpie/Projects/python_workpace/empire/empiremktxgjovhm.onion/Bot/Empire Market.html"
+page = open(html_file)
+
+# BS it
+soup = B(page.read(), features='lxml')
+
+# try to get vendor name and write them to a file
+vendor = open("bot_vendor.txt","w")
+
+for vendors in soup.find_all('div', class_="col-1search"):
+        vendors = str(vendors)
+        for x in re.findall(r'(?<=">)(\b\w+)(?=<\/a>)',vendors):
+                vendor.write(x)
+                vendor.write('\n')
+
+vendor.close()
+
+# get the price
+price = open("bot_price.txt","w")
+
+for cost in soup.find_all('div', class_='col-1search'):
+        cost = str(cost)
+        for i in re.findall(r'(?<=<a>)(.*?)(?=<\/a>)',cost):
+                price.write(i)
+                price.write('\n')
+
+price.close()
+
+# the product name from the dis page 
+product = open("bot_product.txt", "w")
+
+for pname in soup.find_all('div', class_='col-1search'):
+		pname = str(pname)
+		for i in re.findall(r'(?<=(<a href=>)(\w|\d|\n|[().,\-:;@#$%^&*\[\]"+–/\/®°⁰!?{}|~]| ))(?=<\/a>', pname):
+				product.write(i)
+				product.write('\n')
+				
+product.close()
+
+# clean up for the database because vendors are ridiculous with their shit spam
+p_ = os.popen("sed -e 's/&amp/&/g' -e 's/&gt//g' -e 's/&lt//g' -e 's/,//g' -e 's/#//g' bot_product.txt > bot_products.txt")
+#delete the uncleaned file
+p__ = os.popen("rm -r bot_product.txt")
+# make CSV
+csv_ = os.popen("paste -d ',' bot_products.txt bot_vendor.txt bot_price.txt > /var/lib/mysql/EMPIRE_MARKET/bots.csv")
+
+conn = my.connect(
+        host='localhost',
+        user='root',
+        passwd='123qweasdzxc',
+        db='EMPIRE_MARKET'
+)
+try:
+        cursor = conn.cursor()
+        query = '''load data local infile '/var/lib/mysql/WALLSTREET_MARKET/bots.csv' into table bot_net fields terminated by ',';'''
+        cursor.execute(query)
+        conn.commit()
+        conn.close()
+except:
+        print("why are you not working?????")
