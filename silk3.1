@@ -48,7 +48,7 @@ product.close()
 #clean it up 
 p_ = os.popen("sed -e 's/&amp/&/g' -e 's/&gt//g' -e 's/&lt//g' -e 's/,//g' -e 's/#//g' cvv_product.txt > cvv_products.txt")
 # remove the old file
-p__ = os.popen("rm -r bot_product.txt")
+p__ = os.popen("rm -r cvv_product.txt")
 
 # try to price of the items
 price = open("cvv_price.txt", "w")
@@ -64,7 +64,7 @@ p_currency = os.popen("sed -e 's/,/./g' -e 's/\$//g' -e 's/€//g' cvv_price.txt
 
 
 # make CSV for the DB
-csv_ = os.popen("paste -d ',' cvv_products.txt ccv_vendor.txt bot_prices.txt > /var/lib/mysql/SILKROAD/CVV.csv")
+csv_ = os.popen("paste -d ',' cvv_products.txt ccv_vendor.txt cvv_prices.txt > /var/lib/mysql/SILKROAD/CVV.csv")
 
 # database connection and stuffs
 conn = my.connect(
