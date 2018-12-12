@@ -1,0 +1,77 @@
+#!/usr/bin/python3
+# Import libraries and modules
+from bs4 import BeautifulSoup as B
+import re
+import os
+import mysql.connector as my
+from mysql.connector import Error
+from mysql.connector import errorcode
+
+#####################################################
+## This is for the BOT section of the sql database ##
+#####################################################
+
+# put html file into variable
+html_file = "/home/jpie/Projects/python_workpace/wallstyizjhkrvmj.onion/Bot/Wallstreet Market.html"
+page = open(html_file)
+
+# BS it
+soup = B(page.read(), features='lxml')
+
+# try to get vendor name and write them to a file
+vendor = open("bot_vendor.txt","w")
+vendor_html = soup.find_all("td")
+vendor_html = str(vendor_html)
+
+# extact vendor name and clean it
+for i in re.findall(r'(?<=">)(\b\w+)(?=<\/a>)',vendor_html):
+        vendor.write(i)
+        vendor.write("\n")
+
+vendor.close()
+
+# get the price
+price = open("bot_price.txt","w")
+for i in re.findall(r'(?<=<b>)(.*?)(?=<\/b>)', vendor_html):
+        price.write(i)
+        price.write("\n")
+
+price.close()
+
+# clean up for database
+P = os.popen("sed -e 's/,/./g' -e 's/\$//g' -e 's/€//g' bot_price.txt > bot_prices.txt")
+
+# extract product name and write it a file
+product = open("product_name.txt", "w")
+
+table = soup.find_all('table')[1].tbody.find_all('td')[0::5]
+
+for i in table:
+        i = str(i)
+        for x in re.findall(r'(?<=<td>)(.*?)(?=<\/td>)',i):
+                product.write(x)
+                product.write('\n')
+
+product.close()
+
+#clean up for database
+_product = os.popen("sed -e 's/&amp/&/g' -e 's/&gt//g' -e 's/&lt//g' -e 's/,//g' -e 's/#//g' product_name.txt > bot_product.txt")
+
+
+# make CSV
+csv_ = os.popen("paste -d ',' bot_product.txt bot_vendor.txt bot_prices.txt > /var/lib/mysql/WALLSTREET_MARKET/bots.csv")
+
+conn = my.connect(
+        host='localhost',
+        user='root',
+        passwd='123qweasdzxc',
+        db='WALLSTREET_MARKET'
+)
+try:
+        cursor = conn.cursor()
+        query = '''load data local infile '/var/lib/mysql/WALLSTREET_MARKET/bots.csv' into table bot_net fields terminated by ',';'''
+        cursor.execute(query)
+        conn.commit()
+        conn.close()
+except:
+        print("Well this is weird...")
