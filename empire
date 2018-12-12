@@ -45,7 +45,7 @@ product = open("bot_product.txt", "w")
 
 for pname in soup.find_all('div', class_='col-1search'):
 		pname = str(pname)
-		for i in re.findall(r'(?<=(<a href=>)(\w|\d|\n|[().,\-:;@#$%^&*\[\]"+–/\/®°⁰!?{}|~]| ))(?=<\/a>', pname):
+		for i in re.findall(r'(?<=(<a href=>)(\w|\d|\n|[().,\-:;@#$%^&*\[\]"+–/\/®°⁰!?{}|~]| ))(?=<\/a>)', pname):
 				product.write(i)
 				product.write('\n')
 				
