@@ -3,6 +3,7 @@
 from bs4 import BeautifulSoup as B
 import re
 import urllib
+from time import sleep
 import os
 import mysql.connector as my
 from mysql.connector import Error
@@ -10,7 +11,7 @@ from mysql.connector import errorcode
 
 ####################### CHANGE THIS FOR DIFFERENT HTML FILES##############################
 # put html into file variable and open it
-html_file = "/home/jpie/Projects/python_workpace/Berlusconi/SOFTWARE & MALWARE/(27)All Products   BERLUSCONI MARKET.htm"
+html_file = "/root/Capstone/berlusconi/BURLUSCONI/Software&Malware/BERLUSCONI MARKET3.html"
 page = open(html_file)
 
 # Create BS object
@@ -18,16 +19,17 @@ soup = B(page.read(), features='lxml')
 
 # try to get vendor names and write them in a file
 # open 'vendor.txt' file in write mode.
-vendors = open("vendor.txt", "w")
+vendors = open("vendors.txt", "w")
 # get the required information between the 'div' html tags
 vendor_html = soup.find_all("div", class_="user-details")
 vendor_html = str(vendor_html)
 
 # begin loop to get vendor name and clean it
-for i in re.findall(r'>\b\w+',vendor_html):
+for i in re.findall(r'(?<=>)\b\w+',vendor_html):
         vendors.write(i)
         vendors.write("\n")
-        os.popen("sed 's/>//g' vendor.txt > vendors.txt")
+
+
 #close file
 vendors.close()
 
@@ -40,13 +42,14 @@ products = open("products.txt", "w")
 
 # begin loop to get product detail and clean it
 for i in re.findall(r'(?<=<b>)(.*?)(?=<\/b>)',product_html):
-        products.write(i)
-        products.write("\n")
+	i = re.sub(",",'',i)
+	products.write(i)
+	products.write("\n")
 #close file
 products.close()
 
 # find the prices
-price_html = soup.find_all("strong")
+price_html = soup.findAll("div", {"class": "col-xs-3 text-right listing-price"})
 price_html = str(price_html)
 
 # open file for prices
@@ -56,37 +59,36 @@ prices = open("prices.txt", "w")
 for i in re.findall(r'(?<=<strong>)(.*?)(?=<b>)',price_html):
         prices.write(i)
         prices.write("\n")
-
+# close file
 prices.close()
 
-#######################################################
-##### GET RID OF UNEXPECTED COMMAS IN PRODUCT FILE ####
-#######################################################
-al_asad_talal = os.popen("sed 's/,/ /g' products.txt > product.txt")
 # combine all the text files into a CSV file
-al_asad_oh_la_la = os.popen("paste -d',' product.txt vendors.txt prices.txt > asad.csv")
-al_asad_shan = os.popen("cp asad.csv /var/lib/mysql/BERLUSCONI_MARKET/asad.csv")
+create_csv = os.popen("paste -d',' products.txt prices.txt vendors.txt > sql_malware.csv")
+copy_csv = os.popen("cp sql_malware.csv /var/lib/mysql/Berlusconi/sql_malware.csv")
 
 #MySQL stuff
 try:
-        conn = my.connect(
-        host='localhost',
-                user='root',
-                passwd='123qweasdzxc',
-                db='BERLUSCONI_MARKET'
-        )
+	conn = my.connect(
+		host='localhost',
+		user='root',
+		password='P@ssw0rd',
+		allow_local_infile=True,
+		db='Berlusconi'
+	)
 except ValueError:
-        print("OH AL ASAD!!! DB ERROR!")
+        print("Connection Error")
 try:
         cursor = conn.cursor()
-        query = '''load data local infile '/var/lib/mysql/BERLUSCONI_MARKET/asad.csv' into table Software_Malware fields terminated by ',';'''
+        query = '''load data local infile '/root/Capstone/berlusconi/BURLUSCONI/Mal_out/sql_malware.csv' into table Malware fields terminated by ',';'''
         cursor.execute(query)
         conn.commit()
         conn.close()
 except ValueError:
-        print("OH YAYA !!!QUERY ERROR!")
+        print("QUEERY ERROR!")
 
-####
-# IM GOOD
-###
-salam = os.popen("rm /var/lib/mysql/BERLUSCONI_MARKET/asad.csv")
+# Clean up temporary files
+def cleanup():
+        sleep(1)
+        delete_csv = os.popen("rm /var/lib/mysql/Berlusconi/sql_malware.csv")
+        delte_files = os.popen("rm /root/Capstone/berlusconi/BURLUSCONI/Mal_out/sql_malware.csv *.txt")
+cleanup()
